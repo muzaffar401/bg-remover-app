@@ -1,0 +1,15 @@
+[project]
+name = "project"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "numpy>=2.2.6",
+    "onnxruntime>=1.22.0",
+    "opencv-python>=4.11.0.86",
+    "pillow>=11.2.1",
+    "rembg>=2.0.66",
+    "streamlit>=1.45.1",
+    "streamlit-image-comparison>=0.0.4",
+]
