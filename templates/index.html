@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Background Remover Pro</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2><i class="fas fa-cog"></i> Settings</h2>
+            </div>
+            
+            <div class="settings-section">
+                <h3>AI Model</h3>
+                <select id="model-select" class="select-input">
+                    <option value="u2net">Highest Quality (u2net)</option>
+                    <option value="u2net_human_seg">Human Segmentation</option>
+                    <option value="u2netp">Fast Processing</option>
+                </select>
+            </div>
+
+            <div class="settings-section">
+                <h3>Quality Settings</h3>
+                <div class="quality-badge">Ultra HD Processing</div>
+                <select id="quality-select" class="select-input">
+                    <option value="Ultra HD">Ultra HD</option>
+                    <option value="High">High</option>
+                    <option value="Good">Good</option>
+                    <option value="Draft">Draft</option>
+                </select>
+
+                <div class="checkbox-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="edge-refinement" checked>
+                        HD Edge Refinement
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="preserve-details" checked>
+                        Preserve Details
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="upscale-small">
+                        Upscale Small
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="enhance-details" checked>
+                        Enhance Details
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="super-resolution">
+                        Super Resolution
+                    </label>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <h3>Background Options</h3>
+                <select id="bg-type" class="select-input">
+                    <option value="Transparent">Transparent</option>
+                    <option value="Color">Solid Color</option>
+                    <option value="Gradient">Gradient</option>
+                    <option value="Image">Custom Image</option>
+                </select>
+
+                <div id="bg-color-options" class="bg-options" style="display: none;">
+                    <input type="color" id="bg-color" value="#FFFFFF">
+                </div>
+
+                <div id="bg-gradient-options" class="bg-options" style="display: none;">
+                    <div class="color-picker-group">
+                        <label>Start Color</label>
+                        <input type="color" id="gradient-start" value="#4CAF50">
+                    </div>
+                    <div class="color-picker-group">
+                        <label>End Color</label>
+                        <input type="color" id="gradient-end" value="#2196F3">
+                    </div>
+                </div>
+
+                <div id="bg-image-options" class="bg-options" style="display: none;">
+                    <input type="file" id="bg-image" accept="image/*">
+                    <div id="bg-preview" class="bg-preview"></div>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <h3>Advanced Settings</h3>
+                <div class="slider-group">
+                    <label>Foreground Threshold</label>
+                    <input type="range" id="foreground-threshold" min="100" max="300" value="240">
+                    <span class="slider-value">240</span>
+                </div>
+                <div class="slider-group">
+                    <label>Background Threshold</label>
+                    <input type="range" id="background-threshold" min="0" max="100" value="10">
+                    <span class="slider-value">10</span>
+                </div>
+                <div class="slider-group">
+                    <label>Edge Refinement</label>
+                    <input type="range" id="edge-refinement-size" min="0" max="50" value="15">
+                    <span class="slider-value">15</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="main-header">
+                <h1><i class="fas fa-magic"></i> AI Background Remover Pro</h1>
+                <p>Remove backgrounds with studio-quality precision using advanced AI</p>
+            </header>
+
+            <div class="upload-section">
+                <div class="upload-area" id="upload-area">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>Drag & Drop your image here or click to browse</p>
+                    <input type="file" id="file-input" accept="image/*" hidden>
+                </div>
+            </div>
+
+            <div class="image-comparison" style="display: none;">
+                <div class="comparison-container">
+                    <div class="image-panel">
+                        <h3>Original Image</h3>
+                        <div class="image-container">
+                            <img id="original-image" src="" alt="Original">
+                        </div>
+                    </div>
+                    <div class="image-panel">
+                        <h3>Processed Image</h3>
+                        <div class="image-container">
+                            <img id="processed-image" src="" alt="Processed">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="comparison-slider">
+                    <div class="slider-handle"></div>
+                </div>
+
+                <div class="download-options">
+                    <h3>Download Options</h3>
+                    <div class="format-options">
+                        <label class="radio-label">
+                            <input type="radio" name="format" value="PNG" checked>
+                            PNG (Lossless)
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="format" value="JPG">
+                            JPG (High Quality)
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="format" value="TIFF">
+                            TIFF (Maximum Quality)
+                        </label>
+                    </div>
+                    <button id="download-btn" class="download-btn">
+                        <i class="fas fa-download"></i> Download
+                    </button>
+                </div>
+            </div>
+
+            <div class="processing-status" style="display: none; margin-top: 20px;">
+                <div class="progress-bar">
+                    <div class="progress"></div>
+                </div>
+                <p class="status-text">Processing image...</p>
+            </div>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html> 
