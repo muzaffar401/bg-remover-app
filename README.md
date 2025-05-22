@@ -59,8 +59,8 @@ AI Background Remover Pro is a modern, full-stack web application that uses adva
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/yourusername/ai-background-remover-pro.git
-cd ai-background-remover-pro
+git clone https://github.com/yourusername/bg-remover-app.git
+cd bg-remover-app
 ```
 
 ### 2. Install dependencies
