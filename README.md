@@ -51,7 +51,7 @@ AI Background Remover Pro is a modern, full-stack web application that uses adva
 
 | Upload & Settings | Comparison & Download |
 |-------------------|----------------------|
-| ![Upload](https://imgur.com/your-upload.png) | ![Compare](https://imgur.com/your-compare.png) |
+| ![Upload](image1.png) | ![Compare](image2.png) |
 
 ---
 
