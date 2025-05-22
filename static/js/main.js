@@ -70,31 +70,11 @@ function handleFile(file) {
 
     const reader = new FileReader();
     reader.onload = (e) => {
-        // Create an image to check dimensions
-        const img = new Image();
-        img.onload = function() {
-            // Min and max allowed dimensions
-            const minWidth = 500, minHeight = 500;
-            const maxWidth = 1200, maxHeight = 1200;
-
-            if (img.width < minWidth || img.height < minHeight) {
-                showError(`Image is too small. Minimum size is ${minWidth}x${minHeight} pixels. Your image is ${img.width}x${img.height}.`);
-                return;
-            }
-            if (img.width > maxWidth || img.height > maxHeight) {
-                showError(`Image is too large. Maximum size is ${maxWidth}x${maxHeight} pixels. Your image is ${img.width}x${img.height}.`);
-                return;
-            }
-            currentImage = e.target.result;
-            originalImage.src = currentImage;
-            imageComparison.style.display = 'block';
-            showProcessedSpinner();
-            processImage();
-        };
-        img.onerror = function() {
-            showError('Invalid image file.');
-        };
-        img.src = e.target.result;
+        currentImage = e.target.result;
+        originalImage.src = currentImage;
+        imageComparison.style.display = 'block';
+        showProcessedSpinner();
+        processImage();
     };
     reader.readAsDataURL(file);
 }
