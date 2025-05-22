@@ -4,9 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Background Remover Pro</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="/static/css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="icon" type="image/png" href="/static/favicon.webp">
 </head>
 <body>
     <div class="app-container">
@@ -134,8 +135,11 @@
                     </div>
                     <div class="image-panel">
                         <h3>Processed Image</h3>
-                        <div class="image-container">
-                            <img id="processed-image" src="" alt="Processed">
+                        <div class="image-container" style="position:relative;">
+                            <div id="processed-spinner" class="inline-spinner" style="display:none;">
+                                <div class="spinner"></div>
+                            </div>
+                            <img id="processed-image" src="" alt="Processed" style="display:block;">
                         </div>
                     </div>
                 </div>
@@ -175,6 +179,6 @@
         </main>
     </div>
 
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="/static/js/main.js"></script>
 </body>
 </html> 

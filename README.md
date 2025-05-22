@@ -1,8 +1,6 @@
 # AI Background Remover Pro
 
-![AI Background Remover Pro Banner](https://imgur.com/your-banner.png) <!-- (Replace with your own banner if you have one) -->
-
-**AI Background Remover Pro** is a powerful, modern web application that uses advanced AI models to remove backgrounds from images with studio-quality precision. It offers a beautiful, user-friendly interface and a wide range of customization options for both professionals and casual users.
+AI Background Remover Pro is a modern, full-stack web application that uses advanced AI models to remove backgrounds from images with studio-quality precision. It features a beautiful, user-friendly interface, real-time feedback, and a wide range of customization options for both professionals and casual users.
 
 ---
 
@@ -15,11 +13,12 @@
 ### 🖼️ Image Upload & Comparison
 - Drag & drop or browse to upload your image.
 - Instantly see a side-by-side comparison of the original and processed images.
+- **Image dimension validation:** Only allows images between 500x300 and 1000x800 pixels (inclusive). Shows a clear error if the image is too small or too large.
 
 ### 🛠️ Quality & Model Settings
 - **AI Model Selection:** Choose between highest quality, human segmentation, or fast processing.
 - **Quality Levels:** Ultra HD, High, Good, Draft.
-- **Advanced Processing:** 
+- **Advanced Processing:**
   - HD Edge Refinement
   - Preserve Details
   - Upscale Small Images
@@ -42,7 +41,8 @@
 
 ### 💡 Modern UI/UX
 - Responsive, clean, and intuitive interface.
-- Real-time loader/spinner and progress bar during processing.
+- Real-time loader/spinner in the processed image panel during processing.
+- Progress bar for additional feedback.
 - Works great on desktop and mobile.
 
 ---
@@ -68,11 +68,11 @@ cd ai-background-remover-pro
 pip install -r requirements.txt
 ```
 
-### 3. Run the app
+### 3. Run the app (FastAPI)
 ```bash
-python app.py
+uvicorn app:app --reload
 ```
-The app will be available at [http://localhost:5000](http://localhost:5000).
+The app will be available at [http://localhost:8000](http://localhost:8000).
 
 ---
 
@@ -80,7 +80,7 @@ The app will be available at [http://localhost:5000](http://localhost:5000).
 
 ```
 .
-├── app.py                # Flask backend with AI processing
+├── app.py                # FastAPI backend with AI processing
 ├── requirements.txt      # Python dependencies
 ├── static/
 │   ├── css/style.css     # App styles
@@ -94,7 +94,7 @@ The app will be available at [http://localhost:5000](http://localhost:5000).
 
 ## 🛠️ Tech Stack
 
-- **Backend:** Python, Flask, rembg, OpenCV, Pillow
+- **Backend:** Python, FastAPI, rembg, OpenCV, Pillow
 - **Frontend:** HTML5, CSS3, JavaScript (vanilla)
 - **AI Models:** U2Net, U2Net Human Segmentation, U2Netp
 
@@ -103,10 +103,11 @@ The app will be available at [http://localhost:5000](http://localhost:5000).
 ## 🌟 How It Works
 
 1. **Upload an image** via drag & drop or file picker.
-2. **Configure your settings** (model, quality, background, advanced options).
-3. **Process the image** — the app removes the background using AI and applies your chosen background.
-4. **Compare** the original and processed images side by side.
-5. **Download** the result in your preferred format.
+2. **Image is validated** (must be between 500x300 and 1000x800 pixels).
+3. **Configure your settings** (model, quality, background, advanced options).
+4. **Process the image** — the app removes the background using AI and applies your chosen background.
+5. **Compare** the original and processed images side by side.
+6. **Download** the result in your preferred format.
 
 ---
 
@@ -127,6 +128,7 @@ The app will be available at [http://localhost:5000](http://localhost:5000).
 
 - You can easily add new background types, models, or processing steps by editing `app.py` and the frontend files.
 - The UI is fully responsive and can be themed via `static/css/style.css`.
+- **Image validation** can be adjusted in `static/js/main.js` to allow different size ranges.
 
 ---
 
@@ -134,20 +136,20 @@ The app will be available at [http://localhost:5000](http://localhost:5000).
 
 - **Local:** See "Getting Started" above.
 - **Cloud:** Deploy on Render, Railway, Fly.io, or any Python-friendly PaaS.  
-  *(Vercel is not recommended for Flask apps; see FAQ for details.)*
+  *(Vercel is supported for FastAPI apps with the right configuration.)*
 
 ---
 
 ## ❓ FAQ
-
-**Q: Can I deploy this on Vercel?**  
-A: Vercel does not support full Flask apps. Use Render, Railway, or Fly.io for backend deployment.
 
 **Q: What image formats are supported?**  
 A: Upload: Any common image format. Download: PNG, JPG, TIFF.
 
 **Q: Is GPU required?**  
 A: No, but a CPU with AVX support is recommended for faster processing.
+
+**Q: Can I change the allowed image size range?**  
+A: Yes! Edit the validation logic in `static/js/main.js`.
 
 ---
 
@@ -167,7 +169,7 @@ MIT License. See [LICENSE](LICENSE) for details.
 
 - [rembg](https://github.com/danielgatis/rembg)
 - [U2Net](https://github.com/xuebinqin/U-2-Net)
-- [Flask](https://flask.palletsprojects.com/)
+- [FastAPI](https://fastapi.tiangolo.com/)
 - [OpenCV](https://opencv.org/)
 
 ---

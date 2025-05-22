@@ -1,5 +1,9 @@
-from flask import Flask, request, jsonify, send_file, render_template
-from flask_cors import CORS
+from fastapi import FastAPI, File, UploadFile, HTTPException, Request
+from fastapi.responses import JSONResponse, FileResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
 import os
 import time
 import numpy as np
@@ -9,21 +13,61 @@ import cv2
 from io import BytesIO
 import base64
 import tempfile
+from pydantic import BaseModel
+from typing import Optional, Dict, Any
+import shutil
+import json
 
-app = Flask(__name__)
-CORS(app)
+app = FastAPI()
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Configure upload folder
 UPLOAD_FOLDER = 'uploads'
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
+# Mount static files and templates
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
+
 # Initialize session
 session = new_session("u2net_human_seg")
 
-@app.route('/')
-def index():
-    return render_template('index.html')
+# Pydantic models for request validation
+class ProcessRequest(BaseModel):
+    image: str
+    settings: Optional[Dict[str, Any]] = {}
+
+class DownloadRequest(BaseModel):
+    image: str
+    format: str = "PNG"
+
+# Error handlers
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    return JSONResponse(
+        status_code=400,
+        content={"detail": str(exc)}
+    )
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request: Request, exc: Exception):
+    return JSONResponse(
+        status_code=500,
+        content={"detail": str(exc)}
+    )
+
+@app.get("/", response_class=HTMLResponse)
+async def index(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
 
 def process_image(image, settings):
     """Process image with specified settings"""
@@ -191,32 +235,18 @@ def apply_gradient_background(image, start_color, end_color):
     result = Image.composite(gradient_image, image, mask)
     return result
 
-@app.route('/api/process', methods=['POST'])
-def process():
+@app.post("/api/process")
+async def process(request: ProcessRequest):
     try:
-        # Get image and settings from request
-        if not request.is_json:
-            return jsonify({
-                'success': False,
-                'error': 'Request must be JSON'
-            }), 400
-
-        data = request.get_json()
-        if not data or 'image' not in data:
-            return jsonify({
-                'success': False,
-                'error': 'No image data provided'
-            }), 400
-
-        image_data = data.get('image')
-        settings = data.get('settings', {})
+        image_data = request.image
+        settings = request.settings or {}
         
         # Validate image data format
         if not image_data.startswith('data:image/'):
-            return jsonify({
-                'success': False,
-                'error': 'Invalid image data format'
-            }), 400
+            raise HTTPException(
+                status_code=400,
+                detail='Invalid image data format'
+            )
 
         try:
             # Decode base64 image
@@ -224,81 +254,125 @@ def process():
             image = Image.open(BytesIO(image_bytes))
             
             if image is None:
-                return jsonify({
-                    'success': False,
-                    'error': 'Failed to load image'
-                }), 400
+                raise HTTPException(
+                    status_code=400,
+                    detail='Failed to load image'
+                )
 
             # Process image
             result = process_image(image, settings)
             
             if result is None:
-                return jsonify({
-                    'success': False,
-                    'error': 'Failed to process image'
-                }), 500
+                raise HTTPException(
+                    status_code=500,
+                    detail='Failed to process image'
+                )
 
             # Convert result to base64
             buffered = BytesIO()
             result.save(buffered, format="PNG")
             img_str = base64.b64encode(buffered.getvalue()).decode()
             
-            return jsonify({
+            return JSONResponse({
                 'success': True,
                 'image': f'data:image/png;base64,{img_str}'
             })
         
         except Exception as e:
-            return jsonify({
-                'success': False,
-                'error': f'Error processing image: {str(e)}'
-            }), 500
+            raise HTTPException(
+                status_code=500,
+                detail=f'Error processing image: {str(e)}'
+            )
     
+    except HTTPException as he:
+        raise he
     except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': f'Server error: {str(e)}'
-        }), 500
+        raise HTTPException(
+            status_code=500,
+            detail=f'Server error: {str(e)}'
+        )
 
-@app.route('/api/download', methods=['POST'])
-def download():
+@app.post("/api/download")
+async def download(request: DownloadRequest):
     try:
         # Get image and format from request
-        image_data = request.json.get('image')
-        format_type = request.json.get('format', 'PNG')
+        image_data = request.image
+        format_type = request.format
         
-        # Decode base64 image
-        image_bytes = base64.b64decode(image_data.split(',')[1])
-        image = Image.open(BytesIO(image_bytes))
+        # Validate image data format
+        if not image_data.startswith('data:image/'):
+            raise HTTPException(
+                status_code=400,
+                detail='Invalid image data format'
+            )
         
-        # Save image in specified format
-        buffered = BytesIO()
-        if format_type == "PNG":
-            image.save(buffered, format="PNG", compress_level=0)
-            mime_type = "image/png"
-            file_ext = "png"
-        elif format_type == "JPG":
-            image.convert("RGB").save(buffered, format="JPEG", quality=100, subsampling=0)
-            mime_type = "image/jpeg"
-            file_ext = "jpg"
-        else:  # TIFF
-            image.save(buffered, format="TIFF", compression="tiff_deflate")
-            mime_type = "image/tiff"
-            file_ext = "tif"
+        try:
+            # Decode base64 image
+            image_bytes = base64.b64decode(image_data.split(',')[1])
+            image = Image.open(BytesIO(image_bytes))
+            
+            if image is None:
+                raise HTTPException(
+                    status_code=400,
+                    detail='Failed to load image'
+                )
+            
+            # Create temporary file
+            temp_dir = tempfile.mkdtemp()
+            temp_file_path = os.path.join(temp_dir, f"processed_image.{format_type.lower()}")
+            
+            try:
+                # Save image in specified format
+                if format_type == "PNG":
+                    image.save(temp_file_path, format="PNG", compress_level=0)
+                    mime_type = "image/png"
+                elif format_type == "JPG":
+                    image.convert("RGB").save(temp_file_path, format="JPEG", quality=100, subsampling=0)
+                    mime_type = "image/jpeg"
+                else:  # TIFF
+                    image.save(temp_file_path, format="TIFF", compression="tiff_deflate")
+                    mime_type = "image/tiff"
+                
+                # Clean up temporary directory after response is sent
+                def cleanup():
+                    try:
+                        shutil.rmtree(temp_dir)
+                    except:
+                        pass
+                
+                return FileResponse(
+                    temp_file_path,
+                    media_type=mime_type,
+                    filename=f"processed_image.{format_type.lower()}",
+                    background=cleanup
+                )
+            
+            except Exception as e:
+                # Clean up on error
+                try:
+                    shutil.rmtree(temp_dir)
+                except:
+                    pass
+                raise HTTPException(
+                    status_code=500,
+                    detail=f'Error saving image: {str(e)}'
+                )
         
-        buffered.seek(0)
-        return send_file(
-            buffered,
-            mimetype=mime_type,
-            as_attachment=True,
-            download_name=f"processed_image.{file_ext}"
-        )
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f'Error processing image: {str(e)}'
+            )
     
+    except HTTPException as he:
+        raise he
     except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        raise HTTPException(
+            status_code=500,
+            detail=f'Server error: {str(e)}'
+        )
 
-if __name__ == '__main__':
-    app.run(debug=True, port=5000) 
+# For Vercel deployment
+@app.get("/api/health")
+async def health_check():
+    return {"status": "healthy"} 

@@ -12,6 +12,8 @@ const bgTypeSelect = document.getElementById('bg-type');
 const bgColorOptions = document.getElementById('bg-color-options');
 const bgGradientOptions = document.getElementById('bg-gradient-options');
 const bgImageOptions = document.getElementById('bg-image-options');
+const spinnerOverlay = document.querySelector('.spinner-overlay');
+const processedSpinner = document.getElementById('processed-spinner');
 
 // State
 let currentImage = null;
@@ -68,12 +70,51 @@ function handleFile(file) {
 
     const reader = new FileReader();
     reader.onload = (e) => {
-        currentImage = e.target.result;
-        originalImage.src = currentImage;
-        imageComparison.style.display = 'block';
-        processImage();
+        // Create an image to check dimensions
+        const img = new Image();
+        img.onload = function() {
+            // Min and max allowed dimensions
+            const minWidth = 500, minHeight = 500;
+            const maxWidth = 1200, maxHeight = 1200;
+
+            if (img.width < minWidth || img.height < minHeight) {
+                showError(`Image is too small. Minimum size is ${minWidth}x${minHeight} pixels. Your image is ${img.width}x${img.height}.`);
+                return;
+            }
+            if (img.width > maxWidth || img.height > maxHeight) {
+                showError(`Image is too large. Maximum size is ${maxWidth}x${maxHeight} pixels. Your image is ${img.width}x${img.height}.`);
+                return;
+            }
+            currentImage = e.target.result;
+            originalImage.src = currentImage;
+            imageComparison.style.display = 'block';
+            showProcessedSpinner();
+            processImage();
+        };
+        img.onerror = function() {
+            showError('Invalid image file.');
+        };
+        img.src = e.target.result;
     };
     reader.readAsDataURL(file);
+}
+
+// Show/hide processed image spinner
+function showProcessedSpinner() {
+    if (processedSpinner) {
+        processedSpinner.style.display = 'flex';
+    }
+    if (processedImage) {
+        processedImage.style.display = 'none';
+    }
+}
+function hideProcessedSpinner() {
+    if (processedSpinner) {
+        processedSpinner.style.display = 'none';
+    }
+    if (processedImage) {
+        processedImage.style.display = 'block';
+    }
 }
 
 // Process image with current settings
@@ -84,8 +125,7 @@ async function processImage() {
     }
 
     try {
-        showProcessingStatus();
-        
+        showProcessedSpinner();
         const settings = getSettings();
         const response = await fetch('/api/process', {
             method: 'POST',
@@ -98,22 +138,30 @@ async function processImage() {
             })
         });
 
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        let data;
+        try {
+            data = await response.json();
+        } catch (e) {
+            throw new Error('Invalid response from server');
         }
-
-        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.detail || `Server error: ${response.status}`);
+        }
         
         if (data.success) {
             processedImageData = data.image;
+            processedImage.onload = () => {
+                hideProcessedSpinner();
+                processedImage.onload = null;
+            };
             processedImage.src = processedImageData;
-            hideProcessingStatus();
         } else {
             throw new Error(data.error || 'Failed to process image');
         }
     } catch (error) {
         showError(error.message);
-        hideProcessingStatus();
+        hideProcessedSpinner();
     }
 }
 
@@ -207,19 +255,30 @@ async function handleDownload() {
             })
         });
 
-        if (response.ok) {
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `processed_image.${format.toLowerCase()}`;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            a.remove();
-        } else {
-            throw new Error('Download failed');
+        if (!response.ok) {
+            let errorMessage = 'Download failed';
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.detail || errorMessage;
+            } catch (e) {
+                errorMessage = response.statusText || errorMessage;
+            }
+            throw new Error(errorMessage);
         }
+
+        const blob = await response.blob();
+        if (blob.size === 0) {
+            throw new Error('Received empty file from server');
+        }
+
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `processed_image.${format.toLowerCase()}`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        a.remove();
     } catch (error) {
         showError(error.message);
     }
@@ -251,7 +310,22 @@ function hideProcessingStatus() {
 
 // Show error message
 function showError(message) {
-    alert(message);
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'error-message';
+    errorDiv.textContent = message;
+    errorDiv.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background-color: #ff4444;
+        color: white;
+        padding: 15px 25px;
+        border-radius: 5px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        z-index: 1000;
+    `;
+    document.body.appendChild(errorDiv);
+    setTimeout(() => errorDiv.remove(), 5000);
 }
 
 // Initialize comparison slider
